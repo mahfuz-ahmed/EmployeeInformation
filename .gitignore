@@ -1,0 +1,28 @@
+# Build folders
+bin/
+obj/
+
+# User-specific files
+*.user
+*.suo
+*.userosscache
+*.sln.docstates
+
+# Visual Studio
+.vs/
+
+# Logs
+*.log
+
+# Database
+*.mdf
+*.ldf
+
+# Environment files
+appsettings.Development.json
+
+# Node modules (if Angular / frontend)
+node_modules/
+
+# Publish folder
+wwwroot/dist/
