@@ -49,6 +49,7 @@ This project follows a **Clean Architecture** approach with strict separation of
 
 ## 🚀 Getting Started
 1. Update your connection string in `appsettings.json`.
-2. dotnet ef migrations add InitialCreate
-3. dotnet ef database update
+2. Run dotnet ef migrations add InitialCreate
+3. Run dotnet ef database update
 4. Run `dotnet run` to start the application.
+
