@@ -1,4 +1,3 @@
-
 using System.Linq.Expressions;
 
 namespace EmployeeInfo.Repositories.Interfaces
@@ -10,6 +9,7 @@ namespace EmployeeInfo.Repositories.Interfaces
         Task CreateAsync(T entity);
         void Update(T entity);
         void Delete(T entity);
+        void DeleteRange(IEnumerable<T> entities);
         Task<T> GetByIdAsync(int id);
     }
 }

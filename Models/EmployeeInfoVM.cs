@@ -26,6 +26,8 @@ namespace EmployeeInfo.Models
 
         [Required]
         [Phone]
+        [StringLength(14, ErrorMessage = "Phone number cannot exceed 14 digits.")]
+        [RegularExpression(@"^\d{1,14}$", ErrorMessage = "Phone number must be numeric and up to 14 digits.")]
         [Display(Name = "Phone Number")]
         public string PhoneNumber { get; set; } = string.Empty;
 
@@ -42,11 +44,9 @@ namespace EmployeeInfo.Models
         [DataType(DataType.Date)]
         public DateTime JoiningDate { get; set; } = DateTime.Now;
 
-
         public string? DesignationName { get; set; }
         public decimal BasicSalary { get; set; }
         public decimal NetSalary { get; set; }
-
 
         public IEnumerable<SelectListItem>? Designations { get; set; }
         public IEnumerable<SelectListItem>? Salaries { get; set; }

@@ -9,6 +9,7 @@ namespace EmployeeInfo.Services.Interfaces
         Task CreateSalaryAsync(Salary salary);
         Task UpdateSalaryAsync(Salary salary);
         Task<bool> DeleteSalaryAsync(int id);
-        Task<PagedResult<Salary>> GetSalariesPagedAsync(int pageNumber, int pageSize, string? searchTerm = null);
+        Task<int> DeleteMultipleSalariesAsync(List<int> ids);
+        Task<PagedResult<Salary>> GetSalariesPagedAsync(int pageNumber,int pageSize,string? searchTerm = null,string? sortColumn = null,string? sortDir = "asc");
     }
 }

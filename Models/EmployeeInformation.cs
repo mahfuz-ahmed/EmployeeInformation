@@ -1,6 +1,4 @@
-using System;
 using System.ComponentModel.DataAnnotations;
-using System.ComponentModel.DataAnnotations.Schema;
 
 namespace EmployeeInfo.Models
 {
@@ -10,7 +8,7 @@ namespace EmployeeInfo.Models
         public int EmployeeId { get; set; }
 
         [Required]
-        public string Title { get; set; } = string.Empty;
+        public string Title { get; set; } = string.Empty; 
 
         [Required]
         [Display(Name = "First Name")]
@@ -28,6 +26,8 @@ namespace EmployeeInfo.Models
 
         [Required]
         [Phone]
+        [StringLength(14, ErrorMessage = "Phone number cannot exceed 14 digits.")]
+        [RegularExpression(@"^\d{1,14}$", ErrorMessage = "Phone number must be numeric and up to 14 digits.")]
         [Display(Name = "Phone Number")]
         public string PhoneNumber { get; set; } = string.Empty;
 

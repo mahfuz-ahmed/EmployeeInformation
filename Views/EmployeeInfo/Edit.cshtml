@@ -1,3 +1,4 @@
+
 @model EmployeeInfoVM
 
 @{
@@ -51,7 +52,7 @@
             </div>
             <div class="col-md-6 form-group mb-3">
                 <label asp-for="PhoneNumber" class="control-label mb-1"></label>
-                <input asp-for="PhoneNumber" id="PhoneNumber" class="form-control" />
+                <input asp-for="PhoneNumber" id="PhoneNumber" class="form-control" maxlength="14" oninput="this.value = this.value.replace(/[^0-9]/g, '');" />
                 <span asp-validation-for="PhoneNumber" class="text-danger"></span>
             </div>
         </div>
@@ -75,7 +76,7 @@
 
         <div class="col-md-6 form-group mb-3">
             <label asp-for="JoiningDate" class="control-label mb-1"></label>
-            <input asp-for="JoiningDate" id="JoiningDate" class="form-control" type="date" />
+            <input asp-for="JoiningDate" id="JoiningDate" class="form-control" type="date" max="@DateTime.Now.ToString("yyyy-MM-dd")" />
             <span asp-validation-for="JoiningDate" class="text-danger"></span>
         </div>
 
@@ -87,7 +88,9 @@
 </div>
 
 @section Scripts {
-    @{await Html.RenderPartialAsync("_ValidationScriptsPartial");}
+    @{
+        await Html.RenderPartialAsync("_ValidationScriptsPartial");
+    }
 
     <script>
         $(document).ready(function () {
@@ -95,9 +98,9 @@
             $("#TitleDropdown").change(function() {
                 var title = $(this).val();
                 var genderBox = $("#GenderField");
-                
+
                 if (title === 'Mr.') {
-                    genderBox.val('Male'); 
+                    genderBox.val('Male');
                 } else if (title === 'Mrs.' || title === 'Ms.') {
                     genderBox.val('Female');
                 }

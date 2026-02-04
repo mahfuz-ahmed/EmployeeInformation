@@ -38,7 +38,10 @@ namespace EmployeeInfo.Repositories.Implementation
         {
             _context.Set<T>().Remove(entity);
         }
-
+        public void DeleteRange(IEnumerable<T> entities)
+        {
+            _context.Set<T>().RemoveRange(entities);
+        }
         public async Task<T> GetByIdAsync(int id)
         {
             return await _context.Set<T>().FindAsync(id);

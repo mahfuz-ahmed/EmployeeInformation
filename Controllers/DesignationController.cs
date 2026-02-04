@@ -7,10 +7,12 @@ namespace EmployeeInfo.Controllers
     public class DesignationController : Controller
     {
         private readonly IDesignationService _designationService;
+        private readonly ILogger<DesignationController> _logger;
 
-        public DesignationController(IDesignationService designationService)
+        public DesignationController(IDesignationService designationService,ILogger<DesignationController> logger)
         {
             _designationService = designationService;
+            _logger = logger;
         }
 
         public async Task<IActionResult> Index()
@@ -19,9 +21,15 @@ namespace EmployeeInfo.Controllers
         }
 
         [HttpGet]
-        public async Task<IActionResult> GetDesignations(int page = 1, int pageSize = 10, string? searchTerm = null)
+        public async Task<IActionResult> GetDesignations(
+           int page = 1,
+           int pageSize = 10,
+           string? searchTerm = null,
+           string? sortColumn = null,
+           string? sortDir = "asc")
         {
-            var result = await _designationService.GetDesignationsPagedAsync(page, pageSize, searchTerm);
+            _logger.LogInformation($"GetDesignations Search: page={page}, size={pageSize}, search={searchTerm}, sort={sortColumn} {sortDir}");
+            var result = await _designationService.GetDesignationsPagedAsync(page, pageSize, searchTerm, sortColumn, sortDir);
             return Json(new
             {
                 data = result.Data,
@@ -87,6 +95,26 @@ namespace EmployeeInfo.Controllers
                 TempData["SuccessMessage"] = "Designation deleted successfully.";
             }
             return RedirectToAction(nameof(Index));
+        }
+
+        [HttpPost]
+        public async Task<IActionResult> DeleteMultiple([FromBody] List<int> ids)
+        {
+            if (ids == null || !ids.Any())
+                return Json(new { success = false, message = "No items selected." });
+
+            int deletedCount = await _designationService.DeleteMultipleDesignationsAsync(ids);
+
+            if (deletedCount < ids.Count)
+            {
+                return Json(new
+                {
+                    success = true,
+                    message = $"{deletedCount} items deleted. {ids.Count - deletedCount} items were skipped because they are in use."
+                });
+            }
+
+            return Json(new { success = true, message = "Selected items deleted successfully." });
         }
     }
 }

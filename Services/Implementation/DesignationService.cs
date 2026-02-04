@@ -51,7 +51,35 @@ namespace EmployeeInfo.Services.Implementation
             return false;
         }
 
-        public async Task<PagedResult<EmployeeDesignation>> GetDesignationsPagedAsync(int pageNumber, int pageSize, string? searchTerm = null)
+        public async Task<int> DeleteMultipleDesignationsAsync(List<int> ids)
+        {
+            var inUseIds = await _unitOfWork.EmployeeInfos.GetAll()
+                .Where(e => ids.Contains(e.DesignationId))
+                .Select(e => e.DesignationId)
+                .Distinct()
+                .ToListAsync();
+
+            var idsToDelete = ids.Except(inUseIds).ToList();
+
+            if (idsToDelete.Any())
+            {
+                var entities = await _unitOfWork.Designations.GetAll()
+                    .Where(d => idsToDelete.Contains(d.DesignationId))
+                    .ToListAsync();
+
+                _unitOfWork.Designations.DeleteRange(entities);
+                await _unitOfWork.SaveAsync();
+                return entities.Count;
+            }
+            return 0;
+        }
+
+        public async Task<PagedResult<EmployeeDesignation>> GetDesignationsPagedAsync(
+           int pageNumber,
+           int pageSize,
+           string? searchTerm = null,
+           string? sortColumn = null,
+           string? sortDir = "asc")
         {
             var query = _unitOfWork.Designations.GetAll();
 
@@ -60,9 +88,17 @@ namespace EmployeeInfo.Services.Implementation
                 query = query.Where(d => d.DesignationName.Contains(searchTerm));
             }
 
+            if (!string.IsNullOrEmpty(sortColumn) && sortColumn.ToLower() == "designationname")
+            {
+                query = sortDir == "desc" ? query.OrderByDescending(d => d.DesignationName) : query.OrderBy(d => d.DesignationName);
+            }
+            else
+            {
+                query = query.OrderBy(d => d.DesignationName);
+            }
+
             int totalCount = await query.CountAsync();
             var data = await query
-                .OrderBy(d => d.DesignationName)
                 .Skip((pageNumber - 1) * pageSize)
                 .Take(pageSize)
                 .ToListAsync();

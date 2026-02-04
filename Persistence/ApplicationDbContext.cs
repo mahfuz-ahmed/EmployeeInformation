@@ -1,7 +1,6 @@
 using Microsoft.EntityFrameworkCore;
 using Microsoft.AspNetCore.Identity.EntityFrameworkCore;
 using EmployeeInfo.Models;
-using System;
 
 namespace EmployeeInfo.Persistence
 {

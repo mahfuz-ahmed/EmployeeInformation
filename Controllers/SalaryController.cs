@@ -1,17 +1,18 @@
 using EmployeeInfo.Models;
 using EmployeeInfo.Services.Interfaces;
 using Microsoft.AspNetCore.Mvc;
-using System.Threading.Tasks;
 
 namespace EmployeeInfo.Controllers
 {
     public class SalaryController : Controller
     {
         private readonly ISalaryService _salaryService;
+        private readonly ILogger<SalaryController> _logger;
 
-        public SalaryController(ISalaryService salaryService)
+        public SalaryController(ISalaryService salaryService, ILogger<SalaryController> logger)
         {
             _salaryService = salaryService;
+            _logger = logger;
         }
 
         public async Task<IActionResult> Index()
@@ -20,11 +21,17 @@ namespace EmployeeInfo.Controllers
         }
 
         [HttpGet]
-        public async Task<IActionResult> GetSalaries(int page = 1, int pageSize = 10, string? searchTerm = null)
+        public async Task<IActionResult> GetSalaries(
+        int page = 1,
+        int pageSize = 10,
+        string? searchTerm = null,
+        string? sortColumn = null,
+        string? sortDir = "asc")
         {
-            try 
+            try
             {
-                var result = await _salaryService.GetSalariesPagedAsync(page, pageSize, searchTerm);
+                _logger.LogInformation($"GetSalaries Search: page={page}, size={pageSize}, search={searchTerm}, sort={sortColumn} {sortDir}");
+                var result = await _salaryService.GetSalariesPagedAsync(page, pageSize, searchTerm, sortColumn, sortDir);
                 return Json(new
                 {
                     data = result.Data,
@@ -105,6 +112,26 @@ namespace EmployeeInfo.Controllers
                 TempData["SuccessMessage"] = "Salary record deleted successfully.";
             }
             return RedirectToAction(nameof(Index));
+        }
+
+        [HttpPost]
+        public async Task<IActionResult> DeleteMultiple([FromBody] List<int> ids)
+        {
+            if (ids == null || !ids.Any())
+                return Json(new { success = false, message = "No items selected." });
+
+            int deletedCount = await _salaryService.DeleteMultipleSalariesAsync(ids);
+
+            if (deletedCount < ids.Count)
+            {
+                return Json(new
+                {
+                    success = true,
+                    message = $"{deletedCount} items deleted. {ids.Count - deletedCount} items were skipped because they are in use."
+                });
+            }
+
+            return Json(new { success = true, message = "Selected items deleted successfully." });
         }
     }
 }

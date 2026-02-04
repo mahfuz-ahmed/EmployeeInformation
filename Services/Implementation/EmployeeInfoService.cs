@@ -84,6 +84,16 @@ namespace EmployeeInfo.Services.Implementation
             }
         }
 
+        public async Task DeleteMultipleEmployeesAsync(List<int> ids)
+        {
+            var entities = await _unitOfWork.EmployeeInfos.FindByCondition(e => ids.Contains(e.EmployeeId)).ToListAsync();
+            if (entities.Any())
+            {
+                _unitOfWork.EmployeeInfos.DeleteRange(entities);
+                await _unitOfWork.SaveAsync();
+            }
+        }
+
         public async Task<IEnumerable<EmployeeDesignation>> GetDesignationsAsync()
         {
             return await _unitOfWork.Designations.GetAll().ToListAsync();
@@ -94,7 +104,12 @@ namespace EmployeeInfo.Services.Implementation
             return await _unitOfWork.Salaries.GetAll().ToListAsync();
         }
 
-        public async Task<PagedResult<EmployeeInfoVM>> GetEmployeesPagedAsync(int pageNumber, int pageSize, string? searchTerm = null)
+        public async Task<PagedResult<EmployeeInfoVM>> GetEmployeesPagedAsync(
+           int pageNumber,
+           int pageSize,
+           string? searchTerm = null,
+           string? sortColumn = null,
+           string? sortDir = "asc")
         {
             var query = _unitOfWork.EmployeeInfos.GetAllWithDetails();
 
@@ -104,23 +119,64 @@ namespace EmployeeInfo.Services.Implementation
                 string cleanedAmount = searchTerm.Replace(",", "").Replace("$", "");
                 bool isNumeric = decimal.TryParse(cleanedAmount, out decimal amount);
 
-                query = query.Where(e => 
-                    e.FirstName.Contains(searchTerm) || 
-                    e.LastName.Contains(searchTerm) || 
-                    e.Email.Contains(searchTerm) || 
+                query = query.Where(e =>
+                    e.FirstName.Contains(searchTerm) ||
+                    e.LastName.Contains(searchTerm) ||
+                    e.Email.Contains(searchTerm) ||
                     e.Title.Contains(searchTerm) ||
                     (e.Designation != null && e.Designation.DesignationName.Contains(searchTerm)) ||
                     (isNumeric && e.Salary != null && e.Salary.BasicSalary == amount)
                 );
             }
 
+            if (!string.IsNullOrEmpty(sortColumn))
+            {
+                bool isDesc = sortDir == "desc";
+                switch (sortColumn.ToLower())
+                {
+                    case "title":
+                        query = isDesc ? query.OrderByDescending(e => e.Title) : query.OrderBy(e => e.Title);
+                        break;
+                    case "firstname":
+                        query = isDesc ? query.OrderByDescending(e => e.FirstName).ThenByDescending(e => e.LastName)
+                                       : query.OrderBy(e => e.FirstName).ThenBy(e => e.LastName);
+                        break;
+                    case "email":
+                        query = isDesc ? query.OrderByDescending(e => e.Email) : query.OrderBy(e => e.Email);
+                        break;
+                    case "phonenumber":
+                        query = isDesc ? query.OrderByDescending(e => e.PhoneNumber) : query.OrderBy(e => e.PhoneNumber);
+                        break;
+                    case "designationname":
+                        query = isDesc ? query.OrderByDescending(e => e.Designation.DesignationName) : query.OrderBy(e => e.Designation.DesignationName);
+                        break;
+                    case "basicsalary":
+                        query = isDesc ? query.OrderByDescending(e => e.Salary.BasicSalary) : query.OrderBy(e => e.Salary.BasicSalary);
+                        break;
+                    case "netsalary":
+                        query = isDesc ? query.OrderByDescending(e => e.Salary.BasicSalary + e.Salary.Allowances - e.Salary.Deductions)
+                                       : query.OrderBy(e => e.Salary.BasicSalary + e.Salary.Allowances - e.Salary.Deductions);
+                        break;
+                    case "joiningdate":
+                        query = isDesc ? query.OrderByDescending(e => e.JoiningDate) : query.OrderBy(e => e.JoiningDate);
+                        break;
+                    default:
+                        query = query.OrderByDescending(e => e.CreatedOn);
+                        break;
+                }
+            }
+            else
+            {
+                query = query.OrderByDescending(e => e.CreatedOn);
+            }
+
             var allSalariesQuery = _unitOfWork.EmployeeInfos.GetAllWithDetails()
                 .Where(e => e.Salary != null)
-                .Select(e => e.Salary.BasicSalary);
+                .Select(e => e.Salary!.BasicSalary);
 
-            decimal maxSalary = 0; 
+            decimal maxSalary = 0;
             decimal minSalary = 0;
-            
+
             if (await allSalariesQuery.AnyAsync())
             {
                 maxSalary = await allSalariesQuery.MaxAsync();
@@ -128,9 +184,8 @@ namespace EmployeeInfo.Services.Implementation
             }
 
             int totalCount = await query.CountAsync();
-            
+
             var pagedData = await query
-                .OrderByDescending(e => e.CreatedOn)
                 .Skip((pageNumber - 1) * pageSize)
                 .Take(pageSize)
                 .ToListAsync();

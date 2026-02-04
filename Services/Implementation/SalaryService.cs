@@ -2,9 +2,6 @@ using EmployeeInfo.Models;
 using EmployeeInfo.Services.Interfaces;
 using EmployeeInfo.UnitOfWork;
 using Microsoft.EntityFrameworkCore;
-using System.Collections.Generic;
-using System.Linq;
-using System.Threading.Tasks;
 
 namespace EmployeeInfo.Services.Implementation
 {
@@ -54,7 +51,35 @@ namespace EmployeeInfo.Services.Implementation
             return false;
         }
 
-        public async Task<PagedResult<Salary>> GetSalariesPagedAsync(int pageNumber, int pageSize, string? searchTerm = null)
+        public async Task<int> DeleteMultipleSalariesAsync(List<int> ids)
+        {
+            var inUseIds = await _unitOfWork.EmployeeInfos.GetAll()
+                .Where(e => ids.Contains(e.SalaryId))
+                .Select(e => e.SalaryId)
+                .Distinct()
+                .ToListAsync();
+
+            var idsToDelete = ids.Except(inUseIds).ToList();
+
+            if (idsToDelete.Any())
+            {
+                var entities = await _unitOfWork.Salaries.GetAll()
+                    .Where(s => idsToDelete.Contains(s.SalaryId))
+                    .ToListAsync();
+
+                _unitOfWork.Salaries.DeleteRange(entities);
+                await _unitOfWork.SaveAsync();
+                return entities.Count;
+            }
+            return 0;
+        }
+
+        public async Task<PagedResult<Salary>> GetSalariesPagedAsync(
+        int pageNumber,
+        int pageSize,
+        string? searchTerm = null,
+        string? sortColumn = null,
+        string? sortDir = "asc")
         {
             var query = _unitOfWork.Salaries.GetAll();
 
@@ -63,13 +88,39 @@ namespace EmployeeInfo.Services.Implementation
                 string cleanedTerm = searchTerm.Replace(",", "").Replace("$", "").Trim();
                 if (decimal.TryParse(cleanedTerm, out decimal searchAmount))
                 {
-                    query = query.Where(s => s.BasicSalary == searchAmount);
+                    query = query.Where(s => s.BasicSalary == searchAmount || s.Allowances == searchAmount || s.Deductions == searchAmount || (s.BasicSalary + s.Allowances - s.Deductions) == searchAmount);
                 }
+            }
+
+            if (!string.IsNullOrEmpty(sortColumn))
+            {
+                bool isDesc = sortDir == "desc";
+                switch (sortColumn.ToLower())
+                {
+                    case "basicsalary":
+                        query = isDesc ? query.OrderByDescending(s => s.BasicSalary) : query.OrderBy(s => s.BasicSalary);
+                        break;
+                    case "allowances":
+                        query = isDesc ? query.OrderByDescending(s => s.Allowances) : query.OrderBy(s => s.Allowances);
+                        break;
+                    case "deductions":
+                        query = isDesc ? query.OrderByDescending(s => s.Deductions) : query.OrderBy(s => s.Deductions);
+                        break;
+                    case "netsalary":
+                        query = isDesc ? query.OrderByDescending(s => s.BasicSalary + s.Allowances - s.Deductions) : query.OrderBy(s => s.BasicSalary + s.Allowances - s.Deductions);
+                        break;
+                    default:
+                        query = query.OrderBy(s => s.SalaryId);
+                        break;
+                }
+            }
+            else
+            {
+                query = query.OrderBy(s => s.SalaryId);
             }
 
             int totalCount = await query.CountAsync();
             var data = await query
-                .OrderBy(s => s.SalaryId)
                 .Skip((pageNumber - 1) * pageSize)
                 .Take(pageSize)
                 .ToListAsync();

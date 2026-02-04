@@ -1,5 +1,3 @@
-using System.Collections.Generic;
-
 namespace EmployeeInfo.Models
 {
     public class PagedResult<T>

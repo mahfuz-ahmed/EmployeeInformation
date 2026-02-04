@@ -22,17 +22,23 @@ namespace EmployeeInfo.Controllers
         }
 
         [HttpGet]
-        public async Task<IActionResult> GetEmployees(int page = 1, int pageSize = 10, string? searchTerm = null)
+        public async Task<IActionResult> GetEmployees(
+        int page = 1,
+        int pageSize = 10,
+        string? searchTerm = null,
+        string? sortColumn = null,
+        string? sortDir = "asc")
         {
-            try 
+            try
             {
-                _logger.LogInformation($"Searching employees with term: '{searchTerm}', page: {page}, pageSize: {pageSize}");
-                var result = await _service.GetEmployeesPagedAsync(page, pageSize, searchTerm);
+                _logger.LogInformation($"GetEmployees Search: page={page}, size={pageSize}, search={searchTerm}, sort={sortColumn} {sortDir}");
+                var result = await _service.GetEmployeesPagedAsync(page, pageSize, searchTerm, sortColumn, sortDir);
                 _logger.LogInformation($"Found {result.TotalCount} employees");
-                return Json(new { 
-                    data = result.Data, 
-                    totalCount = result.TotalCount, 
-                    page = page, 
+                return Json(new
+                {
+                    data = result.Data,
+                    totalCount = result.TotalCount,
+                    page = page,
                     pageSize = pageSize,
                     maxSalary = result.MaxSalary,
                     minSalary = result.MinSalary
@@ -113,6 +119,18 @@ namespace EmployeeInfo.Controllers
         public async Task<IActionResult> Delete(int id)
         {
             await _service.DeleteEmployeeAsync(id);
+            return Json(new { success = true });
+        }
+
+        [HttpPost]
+        public async Task<IActionResult> DeleteMultiple([FromBody] List<int> ids)
+        {
+            if (ids == null || !ids.Any())
+            {
+                return Json(new { success = false, message = "No employees selected." });
+            }
+
+            await _service.DeleteMultipleEmployeesAsync(ids);
             return Json(new { success = true });
         }
 
